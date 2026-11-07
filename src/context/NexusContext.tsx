@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { apiFetch } from '../utils/api';
 import {
   auth,
   db,
@@ -784,7 +785,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     inactivityTimeoutMinutes = 30
   ): Promise<ActiveAccount | null> => {
     try {
-      const res = await fetch('/api/auth/guest', {
+      const res = await apiFetch('/api/auth/guest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -872,7 +873,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const prevNotifications = [...notifications];
 
     try {
-      const res = await fetch('/api/auth/login-create', {
+      const res = await apiFetch('/api/auth/login-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1001,7 +1002,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const prevLibrary = [...library];
 
     try {
-      const res = await fetch('/api/auth/login-verify', {
+      const res = await apiFetch('/api/auth/login-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1071,7 +1072,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const clamped = Math.max(5, Math.min(180, Math.round(Number(minutes) || 30)));
     if (!account) return;
     try {
-      const res = await fetch('/api/auth/session/config', {
+      const res = await apiFetch('/api/auth/session/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1179,7 +1180,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       );
       if (now - lastPingMs > 45_000 && account.sessionToken.startsWith('gst_')) {
         lastPingMs = now;
-        fetch('/api/auth/session', {
+        apiFetch('/api/auth/session', {
           headers: { Authorization: `Bearer ${account.sessionToken}` },
         }).catch(() => {});
       }
@@ -1236,7 +1237,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           parsed.sessionToken.startsWith('usr_') ||
           parsed.sessionToken.startsWith('gst_')
         ) {
-          const res = await fetch('/api/auth/session', {
+          const res = await apiFetch('/api/auth/session', {
             headers: { Authorization: `Bearer ${parsed.sessionToken}` },
           });
           if (!res.ok) {
@@ -1920,7 +1921,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logoutAccount = async () => {
     try {
       if (account?.sessionToken) {
-        await fetch('/api/auth/logout', {
+        await apiFetch('/api/auth/logout', {
           method: 'POST',
           headers: { Authorization: `Bearer ${account.sessionToken}` },
         }).catch(() => {});
@@ -2009,7 +2010,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     try {
-      await fetch('/api/catalog', {
+      await apiFetch('/api/catalog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(hydrated),
@@ -2027,7 +2028,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const target = catalog.find((c) => c.movieId === movieId);
     setCatalog((prev) => prev.filter((c) => c.movieId !== movieId));
     try {
-      await fetch(`/api/catalog/${encodeURIComponent(movieId)}`, { method: 'DELETE' });
+      await apiFetch(`/api/catalog/${encodeURIComponent(movieId)}`, { method: 'DELETE' });
     } catch {
       // Offline / local fallback already persisted in localStorage
     }
@@ -2065,7 +2066,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     try {
-      await fetch('/api/catalog/import', {
+      await apiFetch('/api/catalog/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: incomingItems }),
