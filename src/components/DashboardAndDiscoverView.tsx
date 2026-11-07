@@ -34,6 +34,7 @@ import { PosterArtwork } from './PosterArtwork';
 import { CatalogItem } from '../types/nexus';
 import { getProviderBadge } from '../utils/metadataProviders';
 import { MyMediaPanel } from './MyMediaPanel';
+import { apiFetch } from '../utils/api';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -114,7 +115,7 @@ export const DashboardView: React.FC = () => {
   const handleGenerateAiCuratorNote = async () => {
     setAiLoading(true);
     try {
-      const resp = await fetch('/api/ai/curator-insights', {
+      const resp = await apiFetch('/api/ai/curator-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
