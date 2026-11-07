@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { MediaSourceConfig, RoomPlaybackState, SocialCinemaRoom } from '../types/nexus';
 import { CURATED_DIRECT_CINEMA_STREAMS } from '../utils/socialEngine';
+import { apiUrl, apiErrorMessage } from '../utils/api';
 
 export interface RecentMediaEntry {
   id: string;
@@ -295,7 +296,15 @@ export const NexusFilmPortalModal: React.FC<NexusFilmPortalModalProps> = ({
 
     const xhr = new XMLHttpRequest();
     activeXhrRef.current = xhr;
-    const url = `/api/social/rooms/${currentRoom.roomId}/media/upload`;
+    let url: string;
+    try {
+      url = apiUrl(`/api/social/rooms/${currentRoom.roomId}/media/upload`);
+    } catch (error) {
+      setUploadProgress(null);
+      setUploadBytesInfo(null);
+      setUploadError(apiErrorMessage(error, 'The multiplayer backend is not configured.'));
+      return;
+    }
 
     xhr.open('POST', url, true);
     if (authHeader) {
@@ -341,7 +350,7 @@ export const NexusFilmPortalModal: React.FC<NexusFilmPortalModalProps> = ({
           saveRecentMediaEntry({
             id: `shared-${Date.now()}`,
             title: resp.fileName || selectedFile.name,
-            url: resp.streamUrl,
+            url: apiUrl(resp.streamUrl),
             sourceType: 'room_shared_file',
             durationSeconds: meta?.duration || 0,
             lastPositionSeconds: 0,
