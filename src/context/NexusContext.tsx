@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { apiFetch } from '../utils/api';
+import { apiFetch, apiErrorMessage } from '../utils/api';
 import {
   auth,
   db,
@@ -980,8 +980,8 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         loginId: srvAcc.loginId,
         loginCode: String(data.loginCode || ''),
       };
-    } catch {
-      addToast('Network error while creating temporary login.', 'error');
+    } catch (error) {
+      addToast(apiErrorMessage(error, 'Network error while creating temporary login.'), 'error');
       return null;
     }
   };
@@ -1061,8 +1061,8 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       addToast(`Welcome back, ${srvAcc.displayName} (${srvAcc.loginId})!`, 'success');
       return verifiedAcc;
-    } catch {
-      addToast('Network error while verifying login credentials.', 'error');
+    } catch (error) {
+      addToast(apiErrorMessage(error, 'Network error while verifying login credentials.'), 'error');
       return null;
     }
   };
