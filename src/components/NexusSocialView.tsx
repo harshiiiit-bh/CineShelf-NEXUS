@@ -56,6 +56,7 @@ import {
   parseSrtToCues,
 } from '../utils/mediaEngine';
 import Hls from 'hls.js';
+import { apiFetch, apiWebSocketUrl, apiErrorMessage } from '../utils/api';
 
 const EMOTE_LABELS: { id: SocialEmoteId; label: string; symbol: string }[] = [
   { id: 'wave', label: 'Wave', symbol: '👋' },
@@ -670,7 +671,7 @@ export function NexusSocialView() {
       }));
 
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `/api/social/browser/inspect?url=${encodeURIComponent(targetUrl)}`
         );
         const data = await res.json();
@@ -698,7 +699,7 @@ export function NexusSocialView() {
       const activeRoom = roomRef.current;
       if (!activeRoom || !bearerToken) return null;
       try {
-        const res = await fetch(`/api/social/rooms/${activeRoom.roomId}/action`, {
+        const res = await apiFetch(`/api/social/rooms/${activeRoom.roomId}/action`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -791,7 +792,7 @@ export function NexusSocialView() {
     const token = activeAcc.sessionToken || `sandbox-token:${activeAcc.uid}`;
     setIsBusy(true);
     try {
-      const res = await fetch('/api/social/rooms', {
+      const res = await apiFetch('/api/social/rooms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -863,8 +864,8 @@ export function NexusSocialView() {
       } else {
         notify(`Created Friend 3D Cinema! Room Invite Code: ${created.inviteCode}`, 'success');
       }
-    } catch {
-      notify('Network error while creating room.', 'error');
+    } catch (error) {
+      notify(apiErrorMessage(error, 'Could not reach the multiplayer backend.'), 'error');
     } finally {
       setIsBusy(false);
     }
@@ -896,7 +897,7 @@ export function NexusSocialView() {
     const token = activeAcc.sessionToken || `sandbox-token:${activeAcc.uid}`;
     setIsBusy(true);
     try {
-      const res = await fetch(`/api/social/rooms/${activeRoom.roomId}/upgrade-to-friends`, {
+      const res = await apiFetch(`/api/social/rooms/${activeRoom.roomId}/upgrade-to-friends`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -923,8 +924,8 @@ export function NexusSocialView() {
           'success'
         );
       }
-    } catch {
-      notify('Network error while upgrading room.', 'error');
+    } catch (error) {
+      notify(apiErrorMessage(error, 'Could not reach the multiplayer backend.'), 'error');
     } finally {
       setIsBusy(false);
     }
@@ -955,7 +956,7 @@ export function NexusSocialView() {
     const token = activeAcc.sessionToken || `sandbox-token:${activeAcc.uid}`;
     setIsBusy(true);
     try {
-      const res = await fetch('/api/social/rooms/join', {
+      const res = await apiFetch('/api/social/rooms/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -996,8 +997,8 @@ export function NexusSocialView() {
       }
       setRoom(joined);
       notify(`Joined ${joined.roomName}!`, 'success');
-    } catch {
-      notify('Network error while joining room.', 'error');
+    } catch (error) {
+      notify(apiErrorMessage(error, 'Could not reach the multiplayer backend.'), 'error');
     } finally {
       setIsBusy(false);
     }
@@ -1030,9 +1031,14 @@ export function NexusSocialView() {
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/nexus-social`;
-    const ws = new WebSocket(wsUrl);
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(apiWebSocketUrl('/ws/nexus-social'));
+    } catch (error) {
+      setWsConnected(false);
+      notify(apiErrorMessage(error, 'The multiplayer backend is unavailable.'), 'error');
+      return;
+    }
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -2622,7 +2628,7 @@ export function NexusSocialView() {
     if (!room || !bearerToken) return;
     setIsBusy(true);
     try {
-      const res = await fetch(`/api/social/rooms/${room.roomId}/simulate-load`, {
+      const res = await apiFetch(`/api/social/rooms/${room.roomId}/simulate-load`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
