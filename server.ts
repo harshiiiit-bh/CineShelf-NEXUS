@@ -125,6 +125,8 @@ export function decodeSessionContext(token: string): RequestSessionContext | nul
 
   // 2. Support verified development sandbox token ONLY for the isolated local sandbox UID
   if (token.startsWith('sandbox-token:')) {
+    // Development sandbox tokens are forgeable by design; never accept them on a public production API.
+    if (process.env.NODE_ENV === 'production') return null;
     const sandboxUid = token.slice('sandbox-token:'.length).trim();
     if (sandboxUid && /^[a-zA-Z0-9_\-]+$/.test(sandboxUid)) {
       const isGuestFallbackUid = sandboxUid.startsWith('guest_fallback_');
@@ -140,6 +142,9 @@ export function decodeSessionContext(token: string): RequestSessionContext | nul
   // 3. Decode Firebase JWT payload (3-segment JWT) and validate basic claims
   const parts = token.split('.');
   if (parts.length === 3) {
+    // Do not trust decoded Firebase JWT payloads without signature verification.
+    // Firebase ID token verification must be implemented before enabling this in production.
+    if (process.env.NODE_ENV === 'production') return null;
     try {
       const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
       const payload = JSON.parse(payloadJson);
