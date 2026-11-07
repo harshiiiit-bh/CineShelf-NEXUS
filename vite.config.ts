@@ -4,8 +4,14 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// GitHub Pages serves this repository below /CineShelf-NEXUS/.
+// Keep local development and non-Pages deployments at the domain root.
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+const appBase = isGitHubPages ? '/CineShelf-NEXUS/' : '/';
+
 export default defineConfig(() => {
   return {
+    base: appBase,
     plugins: [
       react(),
       tailwindcss(),
@@ -13,7 +19,8 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
         manifest: {
-          id: '/',
+          // Relative URLs resolve inside the repository's project-page directory.
+          id: './',
           name: 'CineShelf NEXUS',
           short_name: 'CineShelf',
           description: 'A secure, intelligent personal entertainment management platform combining viewing diaries, series tracking, franchise timelines, streaming availability, and explainable recommendations.',
@@ -21,23 +28,23 @@ export default defineConfig(() => {
           background_color: '#070B14',
           display: 'standalone',
           orientation: 'landscape',
-          start_url: '/',
-          scope: '/',
+          start_url: './',
+          scope: './',
           icons: [
             {
-              src: '/pwa-192x192.png',
+              src: 'pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-512x512.png',
+              src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-maskable-512x512.png',
+              src: 'pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
@@ -45,7 +52,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          // Only cache static application shell & fonts, NEVER cache private API/Firestore responses
+          // Only cache the static application shell & fonts, NEVER cache private API/Firestore responses.
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           navigateFallbackDenylist: [/^\/api\//],
