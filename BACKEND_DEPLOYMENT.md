@@ -62,7 +62,8 @@ The backend allows CORS from `https://harshiiiit-bh.github.io` by default. Add a
 
 ## Important production limitations
 
-- The current temporary Login ID/code manager is in-memory, not a durable account database.
-- Room state and uploaded room media are temporary and are lost on instance restart.
+- The production API accepts only server-issued Guest/Friend temporary tokens. Development sandbox tokens and unverified Firebase JWT payloads are rejected in production; Firebase sign-in needs server-side ID-token verification before its account can use multiplayer endpoints.
+- The temporary Login ID/code manager is not a durable account database. Production intentionally does not restore sessions from the container filesystem.
+- Room state and uploaded room media are temporary and are lost on instance restart. Guest/Friend temporary sessions are also lost on restart or instance replacement.
 - For reliable multi-instance scaling, persistent login/session storage, shared room state (for example Firestore/Redis), and object storage are required.
 - Do not store service-account credentials or API secrets in the browser's `VITE_*` variables.
