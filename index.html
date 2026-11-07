@@ -94,13 +94,25 @@
           if (detailNode) detailNode.textContent = detail || 'No additional error details were provided.';
           panel.style.display = 'flex';
         }
+        // Only treat real JavaScript exceptions as startup failures.
+        // Image/font/favicon load errors are expected to be handled by their own fallbacks
+        // and must never replace the whole app with a giant encoded asset URL.
         window.addEventListener('error', function (event) {
-          var target = event && event.target;
-          var detail = event && event.message;
-          if (target && (target.src || target.href)) detail = 'Failed to load: ' + (target.src || target.href);
-          showBootError('CineShelf startup error', detail || 'A script or asset failed while the page was starting.');
+          if (!(event instanceof ErrorEvent) || !event.message) return;
+          var root = document.getElementById('root');
+          if (root && root.dataset.appMounted === 'true') {
+            console.error('CineShelf runtime error:', event.message, event.filename, event.lineno);
+            return;
+          }
+          var location = event.filename ? ' (' + event.filename + ':' + event.lineno + ':' + event.colno + ')' : '';
+          showBootError('CineShelf startup error', event.message + location);
         }, true);
         window.addEventListener('unhandledrejection', function (event) {
+          var root = document.getElementById('root');
+          if (root && root.dataset.appMounted === 'true') {
+            console.error('CineShelf unhandled promise rejection:', event.reason);
+            return;
+          }
           var reason = event && event.reason;
           showBootError('CineShelf startup error', reason && (reason.stack || reason.message) || String(reason || 'Unhandled promise rejection'));
         });
