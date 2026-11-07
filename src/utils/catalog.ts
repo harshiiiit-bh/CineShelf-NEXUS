@@ -45,7 +45,7 @@ export function buildCinematicPosterSvg(
     <rect x="78" y="802" width="140" height="4" fill="url(#accentBar)" rx="2"/>
   </svg>`;
 
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 export function buildCinematicBackdropSvg(
@@ -78,7 +78,7 @@ export function buildCinematicBackdropSvg(
     <text x="88" y="605" fill="#ffffff" font-family="Georgia, serif" font-size="56" font-weight="700">${safeTitle}</text>
   </svg>`;
 
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 const PALETTE_BY_GENRE: Record<string, [string, string]> = {
