@@ -3,7 +3,7 @@ const configuredBase = String(import.meta.env.VITE_API_BASE_URL || '').trim();
 export const API_BASE_URL = configuredBase.replace(/\/+$/, '');
 
 const BACKEND_SETUP_MESSAGE =
-  'The CineShelf multiplayer backend is not connected. Deploy server.ts to Google Cloud Run, then set the GitHub Actions repository variable VITE_API_BASE_URL to your Cloud Run HTTPS URL and rebuild the Pages site.';
+  'Multiplayer server not connected. Deploy server.ts to Cloud Run, then set VITE_API_BASE_URL in GitHub Actions.';
 
 function isGitHubPagesHost(): boolean {
   return typeof window !== 'undefined' && window.location.hostname.endsWith('.github.io');
