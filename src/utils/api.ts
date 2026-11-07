@@ -1,6 +1,6 @@
 const configuredBase = String(import.meta.env.VITE_API_BASE_URL || '').trim();
 
-export const API_BASE_URL = configuredBase.replace(/\\/+$/, '');
+export const API_BASE_URL = configuredBase.replace(/\/+$/, '');
 
 const BACKEND_SETUP_MESSAGE =
   'The CineShelf multiplayer backend is not connected. Deploy server.ts to Google Cloud Run, then set the GitHub Actions repository variable VITE_API_BASE_URL to your Cloud Run HTTPS URL and rebuild the Pages site.';
@@ -19,10 +19,10 @@ export function assertApiConfigured(): void {
 export function apiUrl(path: string): string {
   assertApiConfigured();
 
-  if (/^https?:\\/\\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path)) return path;
   if (!API_BASE_URL) return path;
 
-  return new URL(path.replace(/^\\//, ''), API_BASE_URL + '/').toString();
+  return new URL(path.replace(/^\//, ''), API_BASE_URL + '/').toString();
 }
 
 /** Fetch a CineShelf backend endpoint. Local development can continue using same-origin routes. */
@@ -36,7 +36,7 @@ export function apiWebSocketUrl(path: string): string {
   assertApiConfigured();
 
   const base = API_BASE_URL || window.location.origin;
-  const url = new URL(path.replace(/^\\//, ''), base + '/');
+  const url = new URL(path.replace(/^\//, ''), base + '/');
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return url.toString();
 }
