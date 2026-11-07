@@ -75,8 +75,10 @@ export const Character3DStudioCanvas: React.FC<Character3DStudioCanvasProps> = (
   // Apply camera view presets
   const applyViewPreset = useCallback((preset: StudioViewPreset) => {
     const d = dragRef.current;
+    // The character rig's facial features are built on its local -Z side.
+    // The camera therefore needs to orbit to -Z for the true front view.
     if (preset === 'front') {
-      d.rotY = 0;
+      d.rotY = Math.PI;
       d.rotX = 0.05;
       d.zoom = 2.6;
       d.targetY = 1.05;
@@ -86,18 +88,18 @@ export const Character3DStudioCanvas: React.FC<Character3DStudioCanvasProps> = (
       d.zoom = 2.6;
       d.targetY = 1.05;
     } else if (preset === 'back') {
-      d.rotY = Math.PI;
+      d.rotY = 0;
       d.rotX = 0.05;
       d.zoom = 2.6;
       d.targetY = 1.05;
     } else if (preset === 'face_closeup') {
-      d.rotY = 0;
+      d.rotY = Math.PI;
       d.rotX = 0.02;
       d.zoom = 1.35;
       d.targetY = 1.58;
     } else {
-      // Full body
-      d.rotY = 0;
+      // Full body, facing the same direction as the front preset.
+      d.rotY = Math.PI;
       d.rotX = 0.1;
       d.zoom = 2.85;
       d.targetY = 0.95;
