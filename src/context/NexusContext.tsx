@@ -641,23 +641,122 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const hydrateUserVaultFromLocalOrSeed = (uid: string, persona: 'user_a' | 'user_b' = 'user_a') => {
     const storageKey = `cineshelf_sandbox_v1_${uid}`;
+    const isDedicatedDemoSandbox = uid === 'sandbox-user-a' || uid === 'sandbox-user-b';
     const savedRaw = localStorage.getItem(storageKey);
+
     if (savedRaw) {
       try {
         const parsed = JSON.parse(savedRaw);
-        setLibrary(parsed.library || buildSandboxSeedLibrary(uid));
-        setWatchHistory(parsed.watchHistory || []);
-        setReviews(parsed.reviews || []);
-        setCollections(parsed.collections || []);
-        setCalendarEvents(parsed.calendarEvents || []);
+        const libraryRows = Array.isArray(parsed.library) ? parsed.library : [];
+        const historyRows = Array.isArray(parsed.watchHistory) ? parsed.watchHistory : [];
+        const reviewRows = Array.isArray(parsed.reviews) ? parsed.reviews : [];
+        const collectionRows = Array.isArray(parsed.collections) ? parsed.collections : [];
+        const calendarRows = Array.isArray(parsed.calendarEvents) ? parsed.calendarEvents : [];
+        const notificationRows = Array.isArray(parsed.notifications) ? parsed.notifications : [];
+
+        // Older builds accidentally prefilled real Guest/Friend accounts with demo viewing history.
+        // Remove only the known seeded record IDs; preserve everything the user added themselves.
+        const demoLibraryIds = new Set([
+          'lib-lakshya-2004',
+          'lib-uri-2019',
+          'lib-dune-part-two-2024',
+          'lib-family-man-2019',
+          'lib-severance-2022',
+          'lib-shershaah-2021',
+          'lib-dark-2017',
+          'lib-userb-parasite',
+        ]);
+        const demoHistoryIds = new Set(['wh-1', 'wh-2']);
+        const demoReviewIds = new Set(['rev-1']);
+        const demoCollectionIds = new Set(['col-1']);
+        const demoCalendarIds = new Set(['cal-1', 'cal-2']);
+        const demoNotificationIds = new Set(['notif-1']);
+
+        const cleanDemoRows = !isDedicatedDemoSandbox;
+        const cleanLibrary = cleanDemoRows
+          ? libraryRows.filter((item: { id?: string }) => !demoLibraryIds.has(String(item?.id || '')))
+          : libraryRows;
+        const cleanHistory = cleanDemoRows
+          ? historyRows.filter((item: { id?: string }) => !demoHistoryIds.has(String(item?.id || '')))
+          : historyRows;
+        const cleanReviews = cleanDemoRows
+          ? reviewRows.filter((item: { id?: string }) => !demoReviewIds.has(String(item?.id || '')))
+          : reviewRows;
+        const cleanCollections = cleanDemoRows
+          ? collectionRows.filter((item: { id?: string }) => !demoCollectionIds.has(String(item?.id || '')))
+          : collectionRows;
+        const cleanCalendar = cleanDemoRows
+          ? calendarRows.filter((item: { id?: string }) => !demoCalendarIds.has(String(item?.id || '')))
+          : calendarRows;
+        const cleanNotifications = cleanDemoRows
+          ? notificationRows.filter((item: { id?: string }) => !demoNotificationIds.has(String(item?.id || '')))
+          : notificationRows;
+
+        setLibrary(cleanLibrary);
+        setWatchHistory(cleanHistory);
+        setReviews(cleanReviews);
+        setCollections(cleanCollections);
+        setCalendarEvents(cleanCalendar);
         setPreferences(parsed.preferences || buildDefaultPreferences(uid));
         setFranchises(parsed.franchises || BUILT_IN_FRANCHISES);
-        setFeedback(parsed.feedback || []);
-        setNotifications(parsed.notifications || []);
+        setFeedback(Array.isArray(parsed.feedback) ? parsed.feedback : []);
+        setNotifications(cleanNotifications);
+
+        const removedLegacyDemoRows =
+          cleanLibrary.length !== libraryRows.length ||
+          cleanHistory.length !== historyRows.length ||
+          cleanReviews.length !== reviewRows.length ||
+          cleanCollections.length !== collectionRows.length ||
+          cleanCalendar.length !== calendarRows.length ||
+          cleanNotifications.length !== notificationRows.length;
+
+        if (removedLegacyDemoRows) {
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              ...parsed,
+              library: cleanLibrary,
+              watchHistory: cleanHistory,
+              reviews: cleanReviews,
+              collections: cleanCollections,
+              calendarEvents: cleanCalendar,
+              notifications: cleanNotifications,
+            })
+          );
+        }
         return;
       } catch {
-        // Fallback to seed below
+        // Fall through to a clean account or the explicit demo sandbox below.
       }
+    }
+
+    // Real Guest/Friend accounts start with an empty personal vault.
+    // Only the two deliberately named development sandbox accounts receive sample records.
+    if (!isDedicatedDemoSandbox) {
+      setLibrary([]);
+      setWatchHistory([]);
+      setReviews([]);
+      setCollections([]);
+      setCalendarEvents([]);
+      setPreferences(buildDefaultPreferences(uid));
+      setFranchises(BUILT_IN_FRANCHISES);
+      setFeedback([]);
+      setNotifications([]);
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          library: [],
+          watchHistory: [],
+          reviews: [],
+          collections: [],
+          calendarEvents: [],
+          preferences: buildDefaultPreferences(uid),
+          franchises: BUILT_IN_FRANCHISES,
+          feedback: [],
+          notifications: [],
+        })
+      );
+      return;
     }
 
     const seededLib = buildSandboxSeedLibrary(uid);
