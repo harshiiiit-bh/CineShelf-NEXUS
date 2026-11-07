@@ -1,0 +1,619 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function isRoomMember(roomId) {
+      return isVerifiedUser() && exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+    }
+
+    function isRoomHost(roomId) {
+      return isVerifiedUser() && get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid == request.auth.uid;
+    }
+
+    function isValidStringList(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 200));
+    }
+
+    // Entity Blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'region', 'isPrivate', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'avatarUrl', 'bio', 'region', 'isPrivate', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 2000))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000))
+        && data.region is string && data.region.size() >= 2 && data.region.size() <= 10
+        && data.isPrivate is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLibraryItem(data, userId) {
+      return data.keys().hasAll(['uid', 'title', 'contentType', 'status', 'releaseYear', 'runtimeMinutes', 'userRating', 'isFavourite', 'isHighlyAnticipated', 'priority', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'movieId', 'metadataProvider', 'providerExternalId', 'providerAttribution', 'title', 'contentType', 'status', 'posterUrl', 'backdropUrl', 'overview', 'personalNotes', 'releaseYear', 'language', 'country', 'director', 'runtimeMinutes', 'userRating', 'isFavourite', 'isHighlyAnticipated', 'priority', 'genres', 'tags', 'cast', 'totalSeasons', 'totalEpisodes', 'completedEpisodes', 'currentSeason', 'currentEpisode', 'watchedEpisodeCodes', 'franchiseId', 'lastWatchedAt', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && (!('movieId' in data) || (data.movieId is string && data.movieId.size() <= 64))
+        && (!('metadataProvider' in data) || (data.metadataProvider is string && data.metadataProvider.size() <= 40 && data.metadataProvider in ['local_json', 'wikidata', 'admin_catalogue', 'tvmaze', 'curated_catalog', 'manual']))
+        && (!('providerExternalId' in data) || (data.providerExternalId is string && data.providerExternalId.size() <= 64))
+        && (!('providerAttribution' in data) || (data.providerAttribution is string && data.providerAttribution.size() <= 240))
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.contentType is string && data.contentType.size() <= 40 && data.contentType in ['movie', 'series', 'anime', 'animated_movie', 'animated_series', 'documentary', 'short_film', 'custom']
+        && data.status is string && data.status.size() <= 40 && data.status in ['want_to_watch', 'currently_watching', 'watched', 'on_hold', 'dropped', 'plan_to_rewatch', 'hidden']
+        && (!('posterUrl' in data) || (data.posterUrl is string && data.posterUrl.size() <= 2000))
+        && (!('backdropUrl' in data) || (data.backdropUrl is string && data.backdropUrl.size() <= 2000))
+        && (!('overview' in data) || (data.overview is string && data.overview.size() <= 4000))
+        && (!('personalNotes' in data) || (data.personalNotes is string && data.personalNotes.size() <= 4000))
+        && data.releaseYear is number && data.releaseYear >= 1880 && data.releaseYear <= 2100
+        && (!('language' in data) || (data.language is string && data.language.size() <= 60))
+        && (!('country' in data) || (data.country is string && data.country.size() <= 80))
+        && (!('director' in data) || (data.director is string && data.director.size() <= 200))
+        && data.runtimeMinutes is number && data.runtimeMinutes >= 0 && data.runtimeMinutes <= 10000
+        && data.userRating is number && data.userRating >= 0 && data.userRating <= 10
+        && data.isFavourite is bool
+        && data.isHighlyAnticipated is bool
+        && data.priority is string && data.priority.size() <= 20 && data.priority in ['low', 'medium', 'high', 'critical']
+        && (!('genres' in data) || isValidStringList(data.genres, 20))
+        && (!('tags' in data) || isValidStringList(data.tags, 30))
+        && (!('cast' in data) || isValidStringList(data.cast, 30))
+        && (!('totalSeasons' in data) || (data.totalSeasons is number && data.totalSeasons >= 0 && data.totalSeasons <= 200))
+        && (!('totalEpisodes' in data) || (data.totalEpisodes is number && data.totalEpisodes >= 0 && data.totalEpisodes <= 5000))
+        && (!('completedEpisodes' in data) || (data.completedEpisodes is number && data.completedEpisodes >= 0 && data.completedEpisodes <= 5000))
+        && (!('currentSeason' in data) || (data.currentSeason is number && data.currentSeason >= 0 && data.currentSeason <= 200))
+        && (!('currentEpisode' in data) || (data.currentEpisode is number && data.currentEpisode >= 0 && data.currentEpisode <= 5000))
+        && (!('watchedEpisodeCodes' in data) || isValidStringList(data.watchedEpisodeCodes, 500))
+        && (!('franchiseId' in data) || (data.franchiseId is string && data.franchiseId.size() <= 128))
+        && (!('lastWatchedAt' in data) || (data.lastWatchedAt is string && data.lastWatchedAt.size() <= 64))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWatchHistoryRecord(data, userId) {
+      return data.keys().hasAll(['uid', 'itemId', 'title', 'contentType', 'watchedDate', 'durationMinutes', 'isRewatch', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'itemId', 'title', 'contentType', 'watchedDate', 'durationMinutes', 'isRewatch', 'seasonNumber', 'episodeNumber', 'sessionNotes', 'ratingAtWatch', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 && data.itemId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.contentType is string && data.contentType.size() <= 40
+        && data.watchedDate is string && data.watchedDate.size() >= 4 && data.watchedDate.size() <= 40
+        && data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 5000
+        && data.isRewatch is bool
+        && (!('seasonNumber' in data) || (data.seasonNumber is number && data.seasonNumber >= 0 && data.seasonNumber <= 200))
+        && (!('episodeNumber' in data) || (data.episodeNumber is number && data.episodeNumber >= 0 && data.episodeNumber <= 5000))
+        && (!('sessionNotes' in data) || (data.sessionNotes is string && data.sessionNotes.size() <= 1000))
+        && (!('ratingAtWatch' in data) || (data.ratingAtWatch is number && data.ratingAtWatch >= 0 && data.ratingAtWatch <= 10))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidReviewRecord(data, userId) {
+      return data.keys().hasAll(['uid', 'itemId', 'title', 'rating', 'headline', 'body', 'containsSpoilers', 'sentiment', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'itemId', 'title', 'rating', 'headline', 'body', 'containsSpoilers', 'sentiment', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 && data.itemId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.rating is number && data.rating >= 0 && data.rating <= 10
+        && data.headline is string && data.headline.size() >= 1 && data.headline.size() <= 240
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 5000
+        && data.containsSpoilers is bool
+        && data.sentiment is string && data.sentiment.size() <= 20 && data.sentiment in ['positive', 'neutral', 'negative']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCustomCollection(data, userId) {
+      return data.keys().hasAll(['uid', 'name', 'description', 'itemIds', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'name', 'description', 'itemIds', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
+        && data.description is string && data.description.size() <= 1000
+        && isValidStringList(data.itemIds, 200)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCalendarEvent(data, userId) {
+      return data.keys().hasAll(['uid', 'title', 'eventType', 'plannedDate', 'durationMinutes', 'completed', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'itemId', 'title', 'eventType', 'plannedDate', 'actualDate', 'durationMinutes', 'notes', 'completed', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && (!('itemId' in data) || (data.itemId is string && data.itemId.size() <= 128))
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
+        && data.eventType is string && data.eventType.size() <= 30 && data.eventType in ['planned', 'actual', 'reminder', 'release']
+        && data.plannedDate is string && data.plannedDate.size() >= 4 && data.plannedDate.size() <= 40
+        && (!('actualDate' in data) || (data.actualDate is string && data.actualDate.size() <= 40))
+        && data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 5000
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && data.completed is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPreferences(data, userId) {
+      return data.keys().hasAll(['uid', 'theme', 'posterDensity', 'region', 'useReviewSentiment', 'yearlyChallengeTarget', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'theme', 'posterDensity', 'region', 'useReviewSentiment', 'yearlyChallengeTarget', 'preferredLanguages', 'favouriteGenres', 'favouriteDirectors', 'favouriteActors', 'subscribedProviders', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.theme is string && data.theme.size() <= 16 && data.theme in ['dark', 'light']
+        && data.posterDensity is string && data.posterDensity.size() <= 24 && data.posterDensity in ['compact', 'comfortable', 'cinematic']
+        && data.region is string && data.region.size() >= 2 && data.region.size() <= 10
+        && data.useReviewSentiment is bool
+        && data.yearlyChallengeTarget is number && data.yearlyChallengeTarget >= 1 && data.yearlyChallengeTarget <= 1000
+        && (!('preferredLanguages' in data) || isValidStringList(data.preferredLanguages, 25))
+        && (!('favouriteGenres' in data) || isValidStringList(data.favouriteGenres, 25))
+        && (!('favouriteDirectors' in data) || isValidStringList(data.favouriteDirectors, 30))
+        && (!('favouriteActors' in data) || isValidStringList(data.favouriteActors, 30))
+        && (!('subscribedProviders' in data) || isValidStringList(data.subscribedProviders, 30))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFranchiseEntry(data, userId) {
+      return data.keys().hasAll(['uid', 'name', 'description', 'watchedEntryIds', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'name', 'description', 'watchedEntryIds', 'customOrderIds', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 200
+        && data.description is string && data.description.size() <= 1500
+        && isValidStringList(data.watchedEntryIds, 200)
+        && (!('customOrderIds' in data) || isValidStringList(data.customOrderIds, 200))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidRecommendationFeedback(data, userId) {
+      return data.keys().hasAll(['uid', 'targetTitle', 'feedbackType', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'targetTitle', 'feedbackType', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.targetTitle is string && data.targetTitle.size() >= 1 && data.targetTitle.size() <= 300
+        && data.feedbackType is string && data.feedbackType.size() <= 30 && data.feedbackType in ['like', 'dislike', 'not_interested', 'dismissed']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidNotificationItem(data, userId) {
+      return data.keys().hasAll(['uid', 'title', 'message', 'isRead', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'title', 'message', 'isRead', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid && data.uid == userId
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.message is string && data.message.size() >= 1 && data.message.size() <= 600
+        && data.isRead is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSocialRoom(data, roomId) {
+      return data.keys().hasAll(['roomId', 'roomName', 'hostUid', 'hostName', 'theme', 'capacity', 'isPrivate', 'isLocked', 'isClosed', 'inviteCode', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['roomId', 'roomName', 'hostUid', 'hostName', 'theme', 'capacity', 'isPrivate', 'isLocked', 'isClosed', 'inviteCode', 'createdAt', 'updatedAt'])
+        && data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 && data.roomId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.roomId == roomId
+        && data.roomName is string && data.roomName.size() >= 1 && data.roomName.size() <= 120
+        && data.hostUid is string && data.hostUid.size() >= 1 && data.hostUid.size() <= 128 && data.hostUid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 120
+        && data.theme is string && data.theme.size() <= 40 && data.theme in ['classic_cinema', 'modern_multiplex', 'luxury_gold', 'retro_cinema', 'futuristic_scifi', 'private_vip']
+        && data.capacity is number && data.capacity in [20, 25, 30, 35]
+        && data.isPrivate is bool && data.isPrivate == true
+        && data.isLocked is bool
+        && data.isClosed is bool
+        && data.inviteCode is string && data.inviteCode.size() >= 8 && data.inviteCode.size() <= 32 && data.inviteCode.matches('^[A-Z0-9]+$')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSocialRoomMember(data, roomId, memberUid) {
+      return data.keys().hasAll(['uid', 'roomId', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'roomId', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == memberUid && data.uid == request.auth.uid
+        && data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 && data.roomId == roomId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.role is string && data.role.size() <= 20 && data.role in ['host', 'co_host', 'member']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSocialRoomMessage(data, roomId) {
+      return data.keys().hasAll(['uid', 'roomId', 'displayName', 'text', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'roomId', 'displayName', 'text', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid
+        && data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 && data.roomId == roomId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 500
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSocialRoomEvent(data, roomId) {
+      return data.keys().hasAll(['uid', 'roomId', 'eventType', 'payloadSummary', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'roomId', 'eventType', 'payloadSummary', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid
+        && data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 && data.roomId == roomId
+        && data.eventType is string && data.eventType.size() >= 1 && data.eventType.size() <= 60
+        && data.payloadSummary is string && data.payloadSummary.size() >= 1 && data.payloadSummary.size() <= 500
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Collection 1: /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId) && (resource == null || existing().uid == request.auth.uid);
+      allow list: if false;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'avatarUrl', 'bio', 'region', 'isPrivate', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId) && existing().uid == request.auth.uid;
+
+      // Collection 2: /users/{userId}/library/{itemId}
+      match /library/{itemId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(itemId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(itemId)
+          && isValidLibraryItem(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(itemId)
+          && isValidLibraryItem(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            // Action 1: Status or Rating Quick Update
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'userRating', 'isFavourite', 'isHighlyAnticipated', 'priority', 'lastWatchedAt', 'updatedAt']) ||
+            // Action 2: Episode Tracker Update
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'totalSeasons', 'totalEpisodes', 'completedEpisodes', 'currentSeason', 'currentEpisode', 'watchedEpisodeCodes', 'lastWatchedAt', 'updatedAt']) ||
+            // Action 3: Full Metadata & Notes Edit
+            incoming().diff(existing()).affectedKeys().hasOnly(['movieId', 'metadataProvider', 'providerExternalId', 'providerAttribution', 'title', 'contentType', 'status', 'posterUrl', 'backdropUrl', 'overview', 'personalNotes', 'releaseYear', 'language', 'country', 'director', 'runtimeMinutes', 'userRating', 'isFavourite', 'isHighlyAnticipated', 'priority', 'genres', 'tags', 'cast', 'totalSeasons', 'totalEpisodes', 'completedEpisodes', 'currentSeason', 'currentEpisode', 'watchedEpisodeCodes', 'franchiseId', 'lastWatchedAt', 'updatedAt'])
+          )
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(itemId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 3: /users/{userId}/watchHistory/{recordId}
+      match /watchHistory/{recordId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(recordId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(recordId)
+          && isValidWatchHistoryRecord(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId)
+          && exists(/databases/$(database)/documents/users/$(userId)/library/$(incoming().itemId));
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(recordId)
+          && isValidWatchHistoryRecord(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().itemId == existing().itemId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['watchedDate', 'durationMinutes', 'isRewatch', 'seasonNumber', 'episodeNumber', 'sessionNotes', 'ratingAtWatch', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(recordId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 4: /users/{userId}/reviews/{reviewId}
+      match /reviews/{reviewId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(reviewId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(reviewId)
+          && isValidReviewRecord(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId)
+          && exists(/databases/$(database)/documents/users/$(userId)/library/$(incoming().itemId));
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(reviewId)
+          && isValidReviewRecord(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().itemId == existing().itemId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'headline', 'body', 'containsSpoilers', 'sentiment', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(reviewId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 5: /users/{userId}/collections/{collectionId}
+      match /collections/{collectionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(collectionId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(collectionId)
+          && isValidCustomCollection(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(collectionId)
+          && isValidCustomCollection(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'itemIds', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(collectionId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 6: /users/{userId}/calendar/{eventId}
+      match /calendar/{eventId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(eventId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(eventId)
+          && isValidCalendarEvent(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(eventId)
+          && isValidCalendarEvent(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'eventType', 'plannedDate', 'actualDate', 'durationMinutes', 'notes', 'completed', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(eventId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 7: /users/{userId}/preferences/{documentId}
+      match /preferences/{documentId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(documentId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(documentId)
+          && isValidUserPreferences(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(documentId)
+          && isValidUserPreferences(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['theme', 'posterDensity', 'region', 'useReviewSentiment', 'yearlyChallengeTarget', 'preferredLanguages', 'favouriteGenres', 'favouriteDirectors', 'favouriteActors', 'subscribedProviders', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(documentId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 8: /users/{userId}/franchises/{franchiseId}
+      match /franchises/{franchiseId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(franchiseId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(franchiseId)
+          && isValidFranchiseEntry(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(franchiseId)
+          && isValidFranchiseEntry(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'watchedEntryIds', 'customOrderIds', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(franchiseId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 9: /users/{userId}/recommendationFeedback/{feedbackId}
+      match /recommendationFeedback/{feedbackId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(feedbackId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(feedbackId)
+          && isValidRecommendationFeedback(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(feedbackId)
+          && isValidRecommendationFeedback(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().targetTitle == existing().targetTitle
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['feedbackType', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(feedbackId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+
+      // Collection 10: /users/{userId}/notifications/{notificationId}
+      match /notifications/{notificationId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(notificationId) && (resource == null || existing().uid == request.auth.uid) && userExists(userId);
+        allow list: if isOwner(userId) && existing().uid == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(notificationId)
+          && isValidNotificationItem(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && isValidId(notificationId)
+          && isValidNotificationItem(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'isRead', 'updatedAt'])
+          && userExists(userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(notificationId) && existing().uid == request.auth.uid && userExists(userId);
+      }
+    }
+
+    // Collection 11: /rooms/{roomId} (NEXUS SOCIAL Private 3D Cinema Room)
+    match /rooms/{roomId} {
+      allow get: if isVerifiedUser()
+        && isValidId(roomId)
+        && (existing().hostUid == request.auth.uid || isRoomMember(roomId));
+      allow list: if false; // Strictly forbid room enumeration
+      allow create: if isVerifiedUser()
+        && isValidId(roomId)
+        && isValidSocialRoom(incoming(), roomId)
+        && incoming().hostUid == request.auth.uid
+        && incoming().isClosed == false
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(roomId)
+        && isValidSocialRoom(incoming(), roomId)
+        && existing().isClosed == false
+        && existing().hostUid == request.auth.uid
+        && incoming().roomId == existing().roomId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Host updates room settings or invite code
+          incoming().diff(existing()).affectedKeys().hasOnly(['roomName', 'theme', 'capacity', 'isLocked', 'inviteCode', 'updatedAt']) ||
+          // Action 2: Host transfers host privileges or closes room
+          incoming().diff(existing()).affectedKeys().hasOnly(['hostUid', 'hostName', 'isClosed', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(roomId) && existing().hostUid == request.auth.uid;
+
+      // Collection 12: /rooms/{roomId}/members/{memberUid}
+      match /members/{memberUid} {
+        allow get: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(memberUid)
+          && (request.auth.uid == memberUid || isRoomMember(roomId) || isRoomHost(roomId));
+        allow list: if isVerifiedUser() && existing().uid == request.auth.uid;
+        allow create: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(memberUid)
+          && isValidSocialRoomMember(incoming(), roomId, memberUid)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/rooms/$(roomId));
+        allow update: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(memberUid)
+          && isValidSocialRoomMember(incoming(), roomId, memberUid)
+          && incoming().uid == existing().uid
+          && incoming().roomId == existing().roomId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role', 'updatedAt'])
+          && (request.auth.uid == memberUid || isRoomHost(roomId));
+        allow delete: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(memberUid)
+          && (request.auth.uid == memberUid || isRoomHost(roomId));
+      }
+
+      // Collection 13: /rooms/{roomId}/messages/{messageId}
+      match /messages/{messageId} {
+        allow get: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(messageId)
+          && (isRoomMember(roomId) || isRoomHost(roomId));
+        allow list: if isVerifiedUser() && existing().uid == request.auth.uid;
+        allow create: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(messageId)
+          && isValidSocialRoomMessage(incoming(), roomId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (isRoomMember(roomId) || isRoomHost(roomId));
+        allow update: if false;
+        allow delete: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(messageId)
+          && (existing().uid == request.auth.uid || isRoomHost(roomId));
+      }
+
+      // Collection 14: /rooms/{roomId}/events/{eventId}
+      match /events/{eventId} {
+        allow get: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(eventId)
+          && (isRoomMember(roomId) || isRoomHost(roomId));
+        allow list: if isVerifiedUser() && existing().uid == request.auth.uid;
+        allow create: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(eventId)
+          && isValidSocialRoomEvent(incoming(), roomId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (isRoomMember(roomId) || isRoomHost(roomId));
+        allow update: if false;
+        allow delete: if isVerifiedUser()
+          && isValidId(roomId)
+          && isValidId(eventId)
+          && isRoomHost(roomId);
+      }
+    }
+  }
+}

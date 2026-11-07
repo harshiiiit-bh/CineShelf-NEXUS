@@ -1,0 +1,735 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account profile and display settings owned exclusively by the authenticated UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 120
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "User avatar URL or Storage reference",
+          "maxLength": 2000
+        },
+        "bio": {
+          "type": "string",
+          "description": "Personal cinema bio",
+          "maxLength": 1000
+        },
+        "region": {
+          "type": "string",
+          "description": "ISO country code for streaming availability (default IN)",
+          "maxLength": 10
+        },
+        "isPrivate": {
+          "type": "boolean",
+          "description": "Enforces private account isolation (always true by default)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["uid", "displayName", "region", "isPrivate", "createdAt", "updatedAt"]
+    },
+    "LibraryItem": {
+      "title": "LibraryItem",
+      "description": "A movie, web series, anime, documentary, short film, or custom entry in the user's private library.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "movieId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "contentType": {
+          "type": "string",
+          "enum": ["movie", "series", "anime", "animated_movie", "animated_series", "documentary", "short_film", "custom"],
+          "maxLength": 40
+        },
+        "status": {
+          "type": "string",
+          "enum": ["want_to_watch", "currently_watching", "watched", "on_hold", "dropped", "plan_to_rewatch", "hidden"],
+          "maxLength": 40
+        },
+        "posterUrl": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "backdropUrl": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "overview": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "personalNotes": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "releaseYear": {
+          "type": "number"
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "director": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "runtimeMinutes": {
+          "type": "number"
+        },
+        "userRating": {
+          "type": "number"
+        },
+        "isFavourite": {
+          "type": "boolean"
+        },
+        "isHighlyAnticipated": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "maxLength": 20
+        },
+        "genres": {
+          "type": "array"
+        },
+        "tags": {
+          "type": "array"
+        },
+        "cast": {
+          "type": "array"
+        },
+        "totalSeasons": {
+          "type": "number"
+        },
+        "totalEpisodes": {
+          "type": "number"
+        },
+        "completedEpisodes": {
+          "type": "number"
+        },
+        "currentSeason": {
+          "type": "number"
+        },
+        "currentEpisode": {
+          "type": "number"
+        },
+        "watchedEpisodeCodes": {
+          "type": "array"
+        },
+        "franchiseId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "lastWatchedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "title", "contentType", "status", "releaseYear", "runtimeMinutes", "userRating", "isFavourite", "isHighlyAnticipated", "priority", "createdAt", "updatedAt"]
+    },
+    "WatchHistoryRecord": {
+      "title": "WatchHistoryRecord",
+      "description": "Individual viewing or rewatch session log entry.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "itemId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "contentType": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "watchedDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "durationMinutes": {
+          "type": "number"
+        },
+        "isRewatch": {
+          "type": "boolean"
+        },
+        "seasonNumber": {
+          "type": "number"
+        },
+        "episodeNumber": {
+          "type": "number"
+        },
+        "sessionNotes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "ratingAtWatch": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "itemId", "title", "contentType", "watchedDate", "durationMinutes", "isRewatch", "createdAt", "updatedAt"]
+    },
+    "ReviewRecord": {
+      "title": "ReviewRecord",
+      "description": "Private personal review and critique for a library item.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "itemId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "rating": {
+          "type": "number"
+        },
+        "headline": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "containsSpoilers": {
+          "type": "boolean"
+        },
+        "sentiment": {
+          "type": "string",
+          "enum": ["positive", "neutral", "negative"],
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "itemId", "title", "rating", "headline", "body", "containsSpoilers", "sentiment", "createdAt", "updatedAt"]
+    },
+    "CustomCollection": {
+      "title": "CustomCollection",
+      "description": "User-organized custom collection or list of entertainment titles.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "itemIds": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "name", "description", "itemIds", "createdAt", "updatedAt"]
+    },
+    "CalendarEvent": {
+      "title": "CalendarEvent",
+      "description": "Planned viewing date, actual viewing session, or reminder in the user's Watch Calendar.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "itemId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "eventType": {
+          "type": "string",
+          "enum": ["planned", "actual", "reminder", "release"],
+          "maxLength": 30
+        },
+        "plannedDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "actualDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "durationMinutes": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "title", "eventType", "plannedDate", "durationMinutes", "completed", "createdAt", "updatedAt"]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "User personalization, theme, recommendation opt-in, and streaming subscription preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["dark", "light"],
+          "maxLength": 16
+        },
+        "posterDensity": {
+          "type": "string",
+          "enum": ["compact", "comfortable", "cinematic"],
+          "maxLength": 24
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "useReviewSentiment": {
+          "type": "boolean"
+        },
+        "yearlyChallengeTarget": {
+          "type": "number"
+        },
+        "preferredLanguages": {
+          "type": "array"
+        },
+        "favouriteGenres": {
+          "type": "array"
+        },
+        "favouriteDirectors": {
+          "type": "array"
+        },
+        "favouriteActors": {
+          "type": "array"
+        },
+        "subscribedProviders": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "theme", "posterDensity", "region", "useReviewSentiment", "yearlyChallengeTarget", "createdAt", "updatedAt"]
+    },
+    "FranchiseEntry": {
+      "title": "FranchiseEntry",
+      "description": "Custom or tracked cinematic universe / franchise with chronological and release order entries.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "watchedEntryIds": {
+          "type": "array"
+        },
+        "customOrderIds": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "name", "description", "watchedEntryIds", "createdAt", "updatedAt"]
+    },
+    "RecommendationFeedback": {
+      "title": "RecommendationFeedback",
+      "description": "User feedback (like, dislike, not_interested, dismissed) on recommendation items.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "targetTitle": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "feedbackType": {
+          "type": "string",
+          "enum": ["like", "dislike", "not_interested", "dismissed"],
+          "maxLength": 30
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "targetTitle", "feedbackType", "createdAt", "updatedAt"]
+    },
+        "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "Watch reminder or release alert for a specific user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "title", "message", "isRead", "createdAt", "updatedAt"]
+    },
+    "SocialRoom": {
+      "title": "SocialRoom",
+      "description": "Private 3D cinema room metadata and authoritative playback snapshot.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "hostUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["classic_cinema", "modern_multiplex", "luxury_gold", "retro_cinema", "futuristic_scifi", "private_vip"],
+          "maxLength": 40
+        },
+        "capacity": {
+          "type": "number"
+        },
+        "isPrivate": {
+          "type": "boolean"
+        },
+        "isLocked": {
+          "type": "boolean"
+        },
+        "isClosed": {
+          "type": "boolean"
+        },
+        "inviteCode": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["roomId", "roomName", "hostUid", "hostName", "theme", "capacity", "isPrivate", "isLocked", "isClosed", "inviteCode", "createdAt", "updatedAt"]
+    },
+    "SocialRoomMember": {
+      "title": "SocialRoomMember",
+      "description": "Authenticated room member record under rooms/{roomId}/members/{memberUid}.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "enum": ["host", "co_host", "member"],
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "roomId", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "SocialRoomMessage": {
+      "title": "SocialRoomMessage",
+      "description": "Persistent chat message inside a private 3D cinema room.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "roomId", "displayName", "text", "createdAt", "updatedAt"]
+    },
+    "SocialRoomEvent": {
+      "title": "SocialRoomEvent",
+      "description": "Important synchronised room interaction or playback event log.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventType": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "payloadSummary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "roomId", "eventType", "payloadSummary", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private root profile document for each authenticated user."
+    },
+    "/users/{userId}/library/{itemId}": {
+      "schema": { "$ref": "#/entities/LibraryItem" },
+      "description": "User's private entertainment library items."
+    },
+    "/users/{userId}/watchHistory/{recordId}": {
+      "schema": { "$ref": "#/entities/WatchHistoryRecord" },
+      "description": "User's private viewing history and rewatch sessions."
+    },
+    "/users/{userId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/ReviewRecord" },
+      "description": "User's private personal reviews and ratings."
+    },
+    "/users/{userId}/collections/{collectionId}": {
+      "schema": { "$ref": "#/entities/CustomCollection" },
+      "description": "User's custom collections and lists."
+    },
+    "/users/{userId}/calendar/{eventId}": {
+      "schema": { "$ref": "#/entities/CalendarEvent" },
+      "description": "User's watch calendar events and scheduled viewings."
+    },
+    "/users/{userId}/preferences/{documentId}": {
+      "schema": { "$ref": "#/entities/UserPreferences" },
+      "description": "User's private personalization and streaming preferences."
+    },
+    "/users/{userId}/franchises/{franchiseId}": {
+      "schema": { "$ref": "#/entities/FranchiseEntry" },
+      "description": "User's private franchise progress and custom franchises."
+    },
+    "/users/{userId}/recommendationFeedback/{feedbackId}": {
+      "schema": { "$ref": "#/entities/RecommendationFeedback" },
+      "description": "User's explicit feedback on recommended titles."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "User's private watch reminders and notifications."
+    },
+    "/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/SocialRoom" },
+      "description": "NEXUS SOCIAL private 3D cinema room metadata."
+    },
+    "/rooms/{roomId}/members/{memberUid}": {
+      "schema": { "$ref": "#/entities/SocialRoomMember" },
+      "description": "Authenticated room participants."
+    },
+    "/rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/SocialRoomMessage" },
+      "description": "Private room chat history."
+    },
+    "/rooms/{roomId}/events/{eventId}": {
+      "schema": { "$ref": "#/entities/SocialRoomEvent" },
+      "description": "Synchronised room playback and refreshment events."
+    }
+  }
+}

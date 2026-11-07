@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Global default-deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.uid == userId;
+    }
+
+    function isValidImageUpload() {
+      return request.resource != null
+        && request.resource.size <= 5 * 1024 * 1024 // Max 5MB
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+    }
+
+    // Private user assets (posters, avatars) under users/{userId}/...
+    match /users/{userId}/{assetCategory}/{fileName} {
+      allow read: if isOwner(userId)
+        && assetCategory in ['posters', 'avatars', 'backups']
+        && fileName.size() <= 180;
+      allow create, update: if isOwner(userId)
+        && assetCategory in ['posters', 'avatars']
+        && fileName.size() <= 180
+        && isValidImageUpload();
+      allow delete: if isOwner(userId)
+        && assetCategory in ['posters', 'avatars', 'backups'];
+    }
+  }
+}

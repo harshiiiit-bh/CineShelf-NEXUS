@@ -1,0 +1,6 @@
+{
+  "name": "CineShelf NEXUS",
+  "description": "A secure, intelligent personal entertainment management platform combining viewing diaries, series tracking, franchise timelines, streaming availability, and explainable recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

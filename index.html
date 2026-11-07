@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        var NativeWebSocket = window.WebSocket;
+        if (NativeWebSocket) {
+          function SafeWebSocket(url, protocols) {
+            var protoStr = Array.isArray(protocols) ? protocols.join(',') : String(protocols || '');
+            if (protoStr.indexOf('vite-hmr') !== -1 || protoStr.indexOf('vite-ping') !== -1) {
+              var virtualSocket = new EventTarget();
+              virtualSocket.readyState = 1;
+              virtualSocket.CONNECTING = 0;
+              virtualSocket.OPEN = 1;
+              virtualSocket.CLOSING = 2;
+              virtualSocket.CLOSED = 3;
+              virtualSocket.url = String(url || '');
+              virtualSocket.protocol = protoStr;
+              virtualSocket.send = function () {};
+              virtualSocket.close = function () {
+                virtualSocket.readyState = 3;
+              };
+              setTimeout(function () {
+                virtualSocket.dispatchEvent(new Event('open'));
+              }, 0);
+              return virtualSocket;
+            }
+            return protocols !== undefined
+              ? new NativeWebSocket(url, protocols)
+              : new NativeWebSocket(url);
+          }
+          SafeWebSocket.prototype = NativeWebSocket.prototype;
+          SafeWebSocket.CONNECTING = NativeWebSocket.CONNECTING;
+          SafeWebSocket.OPEN = NativeWebSocket.OPEN;
+          SafeWebSocket.CLOSING = NativeWebSocket.CLOSING;
+          SafeWebSocket.CLOSED = NativeWebSocket.CLOSED;
+          window.WebSocket = SafeWebSocket;
+        }
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event && event.reason;
+          var msg = reason && (reason.message || String(reason));
+          if (typeof msg === 'string' && msg.indexOf('WebSocket closed without opened') !== -1) {
+            event.preventDefault();
+          }
+        });
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineShelf NEXUS</title>
+    <meta name="description" content="A secure, intelligent personal entertainment management platform combining viewing diaries, series tracking, franchise timelines, streaming availability, and explainable recommendations." />
+    <meta property="og:title" content="CineShelf NEXUS" />
+    <meta property="og:description" content="A secure, intelligent personal entertainment management platform combining viewing diaries, series tracking, franchise timelines, streaming availability, and explainable recommendations." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#070B14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CineShelf" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-50 text-slate-900 dark:bg-[#070B14] dark:text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
