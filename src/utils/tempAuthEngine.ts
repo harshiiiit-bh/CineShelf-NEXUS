@@ -336,7 +336,7 @@ export class TemporaryAuthServerManager {
     let record = this.sessionsByToken.get(token);
 
     // Auto-recover valid guest session tokens if memory was cleared or server restarted
-    if (!record && token.startsWith('gst_') && /^gst_[a-zA-Z0-9_\-]{8,64}$/.test(token)) {
+    if (process.env.NODE_ENV !== 'production' && !record && token.startsWith('gst_') && /^gst_[a-zA-Z0-9_\-]{8,64}$/.test(token)) {
       const shortCode = token.slice(4, 10).toUpperCase();
       const guestId = `GUEST-${shortCode}`;
       const uid = `guest_${shortCode.toLowerCase()}`;
@@ -482,6 +482,8 @@ export class TemporaryAuthServerManager {
   }
 
   public loadPersistedState(): void {
+    // Cloud Run's container filesystem is ephemeral. Never load checked-in or stale local sessions in production.
+    if (process.env.NODE_ENV === 'production') return;
     try {
       const filePath = path.resolve(process.cwd(), '.data', 'auth_sessions.json');
       if (!fs.existsSync(filePath)) return;
