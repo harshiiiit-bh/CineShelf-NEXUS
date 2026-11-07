@@ -224,8 +224,61 @@ export function requireAuthenticatedUser(req: Request, res: Response, next: Next
   next();
 }
 
+function getAllowedCorsOrigins(): Set<string> {
+  const configured = String(process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const defaults = ['https://harshiiiit-bh.github.io'];
+
+  if (process.env.NODE_ENV !== 'production') {
+    defaults.push(
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    );
+  }
+
+  return new Set([...defaults, ...configured]);
+}
+
 export function createApp(onRoomBroadcast?: (roomId: string, eventType: string, payload: unknown) => void) {
   const app = express();
+
+  // GitHub Pages hosts the browser app separately from this Express API.
+  // Explicit CORS handling is required for JSON + Authorization preflight requests.
+  const allowedCorsOrigins = getAllowedCorsOrigins();
+  app.use((req, res, next) => {
+    const origin = String(req.headers.origin || '');
+
+    if (origin && allowedCorsOrigins.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Authorization, Content-Type, X-Media-Filename, Range, Accept'
+      );
+      res.setHeader(
+        'Access-Control-Expose-Headers',
+        'Accept-Ranges, Content-Length, Content-Range, Content-Type'
+      );
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+
+    if (req.method === 'OPTIONS') {
+      if (origin && !allowedCorsOrigins.has(origin)) {
+        res.status(403).end();
+        return;
+      }
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  });
+
   app.use(express.json({ limit: '5mb' }));
 
   const broadcastRoomState = (roomId: string, eventType: string, payload: unknown) => {
@@ -1562,6 +1615,12 @@ export function createHttpServerAndApp() {
   server.on('upgrade', (request, socket, head) => {
     try {
       const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
+      const requestOrigin = String(request.headers.origin || '');
+      if (requestOrigin && !getAllowedCorsOrigins().has(requestOrigin)) {
+        socket.end('HTTP/1.1 403 Forbidden\\r\\nConnection: close\\r\\n\\r\\n');
+        socket.destroy();
+        return;
+      }
       const protocolHeader = String(request.headers['sec-websocket-protocol'] || '');
       if (protocolHeader.includes('vite-hmr') || protocolHeader.includes('vite-ping')) {
         wss.handleUpgrade(request, socket, head, (ws) => {
