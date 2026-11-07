@@ -65,7 +65,56 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-slate-50 text-slate-900 dark:bg-[#070B14] dark:text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
-    <div id="root"></div>
+    <div id="root">
+      <div id="cineshelf-boot-diagnostic" role="status" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#070B14;color:#e2e8f0;font-family:system-ui,sans-serif;text-align:center">
+        <div style="max-width:560px">
+          <div style="font-size:12px;letter-spacing:.18em;color:#60a5fa;font-weight:700">CINESHELF NEXUS</div>
+          <h1 id="cineshelf-boot-title" style="font-size:22px;margin:14px 0 8px">Starting application…</h1>
+          <p id="cineshelf-boot-detail" style="font-size:13px;line-height:1.6;color:#94a3b8">Loading the production app. This screen should disappear when CineShelf is ready.</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        function showBootError(title, detail) {
+          var panel = document.getElementById('cineshelf-boot-diagnostic');
+          if (!panel) {
+            var root = document.getElementById('root');
+            if (!root) return;
+            panel = document.createElement('div');
+            panel.id = 'cineshelf-boot-diagnostic';
+            panel.setAttribute('role', 'alert');
+            panel.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:#070B14;color:#e2e8f0;font-family:system-ui,sans-serif;text-align:center';
+            panel.innerHTML = '<div style="max-width:560px"><div style="font-size:12px;letter-spacing:.18em;color:#60a5fa;font-weight:700">CINESHELF NEXUS</div><h1 id="cineshelf-boot-title" style="font-size:22px;margin:14px 0 8px"></h1><p id="cineshelf-boot-detail" style="font-size:13px;line-height:1.6;color:#94a3b8;overflow-wrap:anywhere"></p><button onclick="location.reload()" style="margin-top:18px;padding:10px 16px;border-radius:8px;background:#2563eb;color:white;border:0">Reload</button></div>';
+            root.appendChild(panel);
+          }
+          var titleNode = document.getElementById('cineshelf-boot-title');
+          var detailNode = document.getElementById('cineshelf-boot-detail');
+          if (titleNode) titleNode.textContent = title;
+          if (detailNode) detailNode.textContent = detail || 'No additional error details were provided.';
+          panel.style.display = 'flex';
+        }
+        window.addEventListener('error', function (event) {
+          var target = event && event.target;
+          var detail = event && event.message;
+          if (target && (target.src || target.href)) detail = 'Failed to load: ' + (target.src || target.href);
+          showBootError('CineShelf startup error', detail || 'A script or asset failed while the page was starting.');
+        }, true);
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event && event.reason;
+          showBootError('CineShelf startup error', reason && (reason.stack || reason.message) || String(reason || 'Unhandled promise rejection'));
+        });
+        window.addEventListener('cineshelf:boot-error', function (event) {
+          showBootError('CineShelf could not render', event.detail || 'React reported a render error.');
+        });
+        window.setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.dataset.appMounted !== 'true') {
+            showBootError('Application did not start', 'The production JavaScript bundle did not complete the React startup sequence. Check the browser Console and Network tabs for the first failed asset or exception.');
+          }
+        }, 12000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
