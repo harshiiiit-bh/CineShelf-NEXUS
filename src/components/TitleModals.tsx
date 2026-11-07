@@ -27,6 +27,7 @@ import {
 } from '../types/nexus';
 import { useNexus } from '../context/NexusContext';
 import { PosterArtwork } from './PosterArtwork';
+import { apiFetch } from '../utils/api';
 import { uploadPrivateUserImage } from '../services/firebase';
 import { deriveTitleClusterRecommendations, toggleSeriesEpisode } from '../utils/engine';
 import {
@@ -967,7 +968,7 @@ export const AddEntryModal: React.FC<{
     setSearchingProviders(true);
     setProviderErrorNotice(null);
     try {
-      const res = await fetch(`/api/metadata/search?q=${encodeURIComponent(q)}`);
+      const res = await apiFetch(`/api/metadata/search?q=${encodeURIComponent(q)}`);
       if (res.ok) {
         const data = await res.json();
         setProviderResults(data.results || []);
